@@ -1,0 +1,8 @@
+- read pato's article
+- read rskips
+  - Compressed block propagation using state trie update batch (COBLO) [link](https://ips.rootstock.io/IPs/RSKIP62.html)
+  - Smoother Difficulty adjustment [link](https://ips.rootstock.io/IPs/RSKIP77.html)
+- propose new rskip
+- download and install rskj
+  - prepare nvim for java
+    - jdtls
