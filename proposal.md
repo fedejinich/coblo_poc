@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Stateful blockchains like RSK and Ethereum face a fundamental limitation in block propagation efficiency: transactions must be executed sequentially because each one modifies the global state. This creates bottlenecks, increases block propagation time, and raises the probability of orphaned blocks—negatively impacting network security and fairness.
+Stateful blockchains like Rootstock face a fundamental limitation in block propagation efficiency: transactions must be executed sequentially because each one modifies the global state. This creates bottlenecks, increases block propagation time, and raises the probability of orphaned-blocks negatively impacting network security and fairness.
 
 RSKIP-62 proposes a new compressed block format called **COBLO (Compressed Block using State Trie Update Batch)**. It allows nodes to start building and mining the next block before fully executing the previous one. This is achieved by including a summary of state changes (`changeBatch`) along with the block header and a compressed list of transaction identifiers.
 
