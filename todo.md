@@ -6,3 +6,4 @@
 - download and install rskj
   - prepare nvim for java
     - jdtls
+- fill gaps in `deep_exploration.md` document
