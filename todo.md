@@ -6,4 +6,5 @@
 - download and install rskj
   - prepare nvim for java
     - jdtls
-- fill gaps in `deep_exploration.md` document
+- fill gaps in `deep_exploration.md`
+- add an issue of a typo "blog" -> "blob" to rskip62

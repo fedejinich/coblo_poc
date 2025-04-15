@@ -2,6 +2,8 @@
 
 In this document/article we will explore the insights of the RSKIP62 which introduces a new block type (COBLO) to improve block propagation times.
 
+The goal of this document is explore and write a potenital article/s.
+
 ## Critical Path During Block Propagation
 
 BRIEF EXPLANATION OF THE CRITICAL PATH OF A BLOCK PROPAGATION
@@ -11,7 +13,7 @@ BRIEF EXPLANATION OF THE CRITICAL PATH OF A BLOCK PROPAGATION
 Two proposals:
 
 - even/odd sharding (destructive as fuck)
-- headers-first propagation (what we will explore care)
+- headers-first propagation (what we are exploring)
 
 ## A Twisted Headers-First Propagation (RSKIP62)
 
@@ -26,7 +28,7 @@ RSKIP62 introduces a new compressed block format `COBLO` defined as:
 - `CobloBlock`
   - `CobloBlockHeader block_header`
     - `BlockHeader`
-    - `UnclesHeaders` (a list?)
+    - `UnclesHeaders[]`
     - `BitcoinSpvProof`
   - `CompressedTransactionId[] compressed_transaction_ids`
     - `CompressedTransactionId`: 10-byte prefix of a 256-bit `TransactionId`
@@ -69,18 +71,37 @@ The exact threshold is chosen by the miner. The miner will add to the `changeBat
 
 ## Compressing Storage Keys
 
-`StorageKeys` are subject to the key-compression scheme defined as a variant of `run-length` encoding.
+`StorageKeys` are subject to the key-compression scheme defined as a variant of run length encoding (RLE), a very simple compression technique where we replace a given symbol with a count of how many times that symbol is repeated plus the symbol itself.
 
-When first byte is zero we read normal data and we continue from the second byte.
+```
+PPPPPAAATOOO -> 5P3A1T3O
+```
 
-When first byte is non-zero then the three most significant bits are special and they represent different compression options:
+RLE is effective for compressing homogenious data but is less effective when the data size is small (CHECK THIS) and when it has fewer variations, and at some point it can increase the data size because it takes 2 bytes to represent a single symbol.
 
-- `000`: ...
-- `001`: ...
-- `010`: ...
-- `011`: ...
-- `100`: ...
-- `otherwise`: reserved for future use.
+```
+FEDDE -> 1F1E2D1E
+```
+
+### The algorithm
+
+For those reasons, in this RSKIP we propose the compression algorithm defined as following (EXPLAIN MORE THIS PART IT NEEDS MORE REASONS):
+
+- When first byte is zero we read normal data and we continue from the second byte.
+- When first byte is non-zero then the three most significant bits are special and they represent different compression options:
+  - `000`: blob matches `(dummyByte, valueData)` and the result is `valueData`
+  - `001`: blob matches `(dataLength, dataOffset)` and the value is taken from the `data` field of the transaction. Each element corresponds to a 16-bit unsigned word (4 bytes)
+    - (MAYBE THIS SHOULD BE SOMWHERE ELSE) If the provided values are invalid, then the block header is invalid.
+    - This type of compression is useful to specify that a certain contract will store the code that is specified by a contract creation transaction.
+  - `010`: the blob matches `(dummyByte, account, storageAddress, valueOffset, valueLength)` and the value is extracted from the state of the contract.
+    - Rootstock allows storage values to be larger than 32 bytes, this compression method allows to extract any number of bytes at any offset.
+    - This can be used when a contract creates another contract (`CREATE3`)
+  - `011`: blob matches `(dummyByte)` and the value extracted is the receiver's address of the transaction.
+  - `100`: blob matches `(dataByte)` and the extracted data is `dataByte` (without the most significant bit)
+    - Allows encoding values from 0 to 31.
+  - `otherwise`: reserved for future use.
+
+ADD_EXAMPLES_FOR_EACH_CASE
 
 ## A New Network Message
 
@@ -100,13 +121,16 @@ If the node that receives the compressed header does not have a copy of a transa
 
 IN THIS SECTION WE DESCRIBE HOW THE NEW BLOCK TYPE IS INTRODUCED AND HOW WILL THE ROOTSTOCK PROTOCOL CHANGE.
 
+- is there a any block type on the block header?
+- how would the node identify the new block? with the NetworkMessage?
+
 ## Alternatives
 
 POTENTIAL ALTERNATIVE DESIGNS
 
 ### Without StorageKey Compression
 
-This removes complexity and prevents over-engnieering leaving space for potential improvements. The downside of this alternative is that the COBLO block sizes will be bigger and this will affect block propagation, making the entire proposal useless.
+This removes complexity and prevents over engineering leaving space for potential improvements. The downside of this alternative is that the COBLO block sizes will be bigger and this will affect block propagation, making the entire proposal useless.
 
 ### ???
 
@@ -114,7 +138,10 @@ SPACE FOR EXTRA ALTERNATIVE
 
 ## Components to build a PoC
 
+- `StorageKey` compression algorithm
 - COBLO block
+  - structure
+  - serialization
 - COBLO block propagation
   - Add a new `NetworkMessage`
   - Block connection
@@ -123,6 +150,4 @@ SPACE FOR EXTRA ALTERNATIVE
   - (HARD?) Recontrsuct transaction trie from compressed ids
   - Missing transactions fetch
 - COBLO minning mechanism/client
-- `StorageKey` compression algorithm
 - Setup a testing network
-- Benchmakring

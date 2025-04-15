@@ -1,10 +1,10 @@
-# PoC Proposal: Evaluation of the COBLO Format Proposed in RSKIP-62
+# PoC Proposal: Evaluation of the COBLO Block Format Proposed in RSKIP-62
 
 ## Introduction
 
-Stateful blockchains like Rootstock face a fundamental limitation in block propagation efficiency: transactions must be executed sequentially because each one modifies the global state. This creates bottlenecks, increases block propagation time, and raises the probability of orphaned-blocks negatively impacting network security and fairness.
+Rootstock faces an inefficiency in block propagation: transactions must be executed sequentially because each one modifies the global state. This creates bottlenecks, increases block propagation time, and raises the probability of orphaned-blocks negatively impacting network security and fairness.
 
-RSKIP-62 proposes a new compressed block format called **COBLO (Compressed Block using State Trie Update Batch)**. It allows nodes to start building and mining the next block before fully executing the previous one. This is achieved by including a summary of state changes (`changeBatch`) along with the block header and a compressed list of transaction identifiers.
+RSKIP-62 proposes a new compressed block format called COBLO (Compressed Block using State Trie Update Batch). It allows nodes to start building and mining the next block before fully executing the previous one. This is achieved by including a summary of state changes along with the block header and a compressed list of transaction identifiers.
 
 This PoC aims to evaluate the technical feasibility and practical benefits of adopting COBLO in a simulated network environment.
 
@@ -22,8 +22,8 @@ This PoC aims to evaluate the technical feasibility and practical benefits of ad
 
 The COBLO format introduces:
 
-1. A compressed list of transaction identifiers (`compressedTransactionIds`).
-2. A summary of state changes (`changeBatch`) caused by those transactions.
+1. A compressed list of transaction identifiers.
+2. A summary of state changes caused by those transactions.
 3. The ability for miners to use the `changeBatch` to start mining the next block before the current block is fully executed.
 
 ---
@@ -43,17 +43,58 @@ Demonstrate that it is possible to:
 
 Three types of nodes are simulated:
 
-- **Miner A**: produces blocks using the COBLO format.
-- **Relay B**: receives COBLO, validates its header, and reconstructs the state from `compressedTransactionIds` and `changeBatch`.
-- **Miner C**: uses the `changeBatch` to begin mining the next block without waiting to execute all transactions from the parent block.
+- Miner A: produces blocks using the COBLO format.
+- Full Node B: receives COBLO, validates its header, and reconstructs the state from `compressedTransactionIds` and `changeBatch`.
+- Miner C: uses the `changeBatch` to begin mining the next block without waiting to execute all transactions from the parent block.
 
-### Simulated Components
+### Components
 
-- `blockHeader`: standard block header.
-- `compressedTransactionIds`: truncated transaction hashes (e.g., first 10 bytes).
-- `changeBatch`: list of key-value pairs representing state trie updates.
-- `mempool`: local transaction pool for each node.
-- Simulated network with configurable latency.
+- COBLO block
+
+```
+CobloBlock
+├── CobloBlockHeader
+│   ├── BlockHeader
+│   ├── UnclesHeader[]
+    │   └── UncleHeader
+│   └── BitcoinSpvProof
+├── CompressedTransactionId[]
+│   └── CompressedTransactionId
+└── Change[]
+    └── Change
+        ├── TransactionIndex
+        └── TransactionChange[]
+            └── TransactionChange
+                ├── Account
+                ├── InternalChange[]
+                │   └── InternalChange
+                │       ├── InternalKey
+                │       │   ├── Nonce
+                │       │   ├── Balance
+                │       │   ├── Code
+                │       │   └── other
+                │       └── Value
+                └── StorageChange[]
+                    └── StorageChange
+                        ├── StorageKey
+                        └── Value
+```
+
+The entire tree structure should be serialized for the later use on block propagation.
+
+- COBLO block propagation
+  - Add a new `NetworkMessage`
+  - Block connection
+  - PoW validation
+  - Check and fetch for missing `compressed_transaction_ids`
+  - (HARD?) Recontrsuct transaction trie from compressed ids
+  - Missing transactions fetch
+
+- COBLO minning mechanism/client
+
+- `StorageKey` compression algorithm
+
+- Setup a testing network
 
 ---
 
@@ -61,26 +102,13 @@ Three types of nodes are simulated:
 
 ### What will be evaluated
 
-1. **Block propagation time (with and without COBLO)**
-   - Time from block emission to full reception.
-
-2. **Time to start mining the child block**
-   - Whether mining can begin before the full execution of the parent block.
-
-3. **Compression ratio achieved by COBLO**
-   - Comparison between traditional block size and COBLO block size.
-
-4. **Percentage of transactions resolved via local mempool**
-   - Effectiveness of `compressedTransactionIds` in reconstructing transactions.
-
-5. **Time to resolve ID collisions**
-   - Measure overhead when compressed transaction IDs collide.
-
-6. **State validation error rate**
-   - Measure if the final state derived from `changeBatch` matches expectations.
-
-7. **Orphan block rate**
-   - Assess whether COBLO helps reduce the number of discarded blocks.
+- Block propagation time: Time from block emission to full reception, with and without COBLO.
+- Mining start time: Whether mining can begin before the full execution of the parent block.
+- Orphan block rate: Impact of COBLO on reducing the number of discarded blocks.
+- COBLO compression ratio: Comparison between traditional block size and COBLO block size.
+- Local mempool resolution rate: Effectiveness of `compressedTransactionIds` in reconstructing transactions from local state.
+- ID collision resolution time: Overhead introduced when compressed transaction IDs collide.
+- State validation error rate: Frequency at which final state derived from `changeBatch` does not match expected state.
 
 ---
 
@@ -89,9 +117,10 @@ Three types of nodes are simulated:
 - Intentional collisions in `compressedTransactionIds`.
 - Inconsistencies between `changeBatch` and actual transaction effects.
 - Partial state validation vulnerabilities.
+- LEAVE_THIS_TO_DISCUSS_WITH_SERGIO
 
 ---
 
 ## Conclusion
 
-This PoC aims to validate whether the COBLO format proposed in RSKIP-62 can be securely and efficiently implemented to enhance block propagation and reduce block production delays. The outcome of this PoC may inform decisions about adopting the protocol in real-world networks such as RSK or other EVM-compatible chains.
+This PoC aims to validate whether the COBLO format proposed in RSKIP-62 can be securely and efficiently implemented to enhance block propagation and reduce block production delays. The outcome of this PoC can lead to reduce difficulty as proposed by RSKIP-72
