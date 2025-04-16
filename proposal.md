@@ -82,6 +82,7 @@ CobloBlock
 
 The entire tree structure should be serialized for the later use on block propagation.
 
+- Setup a testing network
 - COBLO block propagation
   - Add a new `NetworkMessage`
   - Block connection
@@ -89,18 +90,12 @@ The entire tree structure should be serialized for the later use on block propag
   - Check and fetch for missing `compressed_transaction_ids`
   - (HARD?) Recontrsuct transaction trie from compressed ids
   - Missing transactions fetch
-
 - COBLO minning mechanism/client
-
 - `StorageKey` compression algorithm
-
-- Setup a testing network
 
 ---
 
 ## Evaluation and Metrics
-
-### What will be evaluated
 
 - Block propagation time: Time from block emission to full reception, with and without COBLO.
 - Mining start time: Whether mining can begin before the full execution of the parent block.
@@ -109,6 +104,7 @@ The entire tree structure should be serialized for the later use on block propag
 - Local mempool resolution rate: Effectiveness of `compressedTransactionIds` in reconstructing transactions from local state.
 - ID collision resolution time: Overhead introduced when compressed transaction IDs collide.
 - State validation error rate: Frequency at which final state derived from `changeBatch` does not match expected state.
+- Evaluate under attack conditions: How the response mechanism under attack conditions (intentional  collisions, inconsistenciesm, partial state validation, etc)
 
 ---
 
